@@ -1,0 +1,21 @@
+package ast.template;
+
+import ast.template.css.declaration.CssRulesNode;
+
+public class TemplateStyleTagNode extends TemplateElementNode {
+    public final CssRulesNode rules;
+
+    public TemplateStyleTagNode(CssRulesNode rules, int line, int column) {
+        super(line, column);
+        this.nodeName = "TemplateStyleTagNode";
+        this.rules = rules;
+    }
+
+    @Override
+    public String toString() {
+        return "\nTemplateStyleTagNode{ " +
+                line + ":" + column +
+                ", rules=" + rules +
+                '}';
+    }
+}

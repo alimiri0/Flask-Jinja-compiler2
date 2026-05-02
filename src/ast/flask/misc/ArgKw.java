@@ -1,0 +1,27 @@
+package ast.flask.misc;
+
+
+import ast.flask.FlaskASTNode;
+import ast.flask.expr.Expr;
+
+public class ArgKw extends FlaskASTNode {
+    public final String name;
+    public final Expr value;
+
+    public ArgKw(String name, Expr value, int line, int column) {
+        super(line, column);
+        this.nodeName = "ArgKw";
+        this.name = name;
+        this.value = value;
+        addChild(value);
+    }
+
+    @Override
+    public String toString() {
+        return "\nTemplateArgKw{ " +
+                line + ":" + column +
+                ", name='" + name + '\'' +
+                ", value=" + value +
+                '}';
+    }
+}
