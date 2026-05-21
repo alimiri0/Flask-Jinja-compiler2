@@ -31,6 +31,10 @@ public abstract class TemplateASTNode {
         if (child != null) children.add(child);
     }
 
+    public String getNodeName() {
+        return nodeName;
+    }
+
     @Override
     public String toString() {
         return  "ASTNode{ " +

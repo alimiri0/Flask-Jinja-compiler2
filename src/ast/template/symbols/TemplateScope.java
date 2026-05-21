@@ -39,6 +39,17 @@ public class TemplateScope {
         return null;
     }
 
+    // Search ALL scopes in the tree (for scope error detection)
+    public TemplateSymbol resolveDeep(String name) {
+        TemplateSymbol s = symbols.get(name);
+        if (s != null) return s;
+        for (TemplateScope child : children) {
+            s = child.resolveDeep(name);
+            if (s != null) return s;
+        }
+        return null;
+    }
+
     public Map<String, TemplateSymbol> getSymbols() {
         return symbols;
     }

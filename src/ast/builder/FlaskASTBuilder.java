@@ -225,13 +225,13 @@ public class FlaskASTBuilder extends MiniFlaskParserBaseVisitor<FlaskASTNode> {
         if (isRead(ctx)) {
             Symbol symbol = symbolTable.resolve(name);
             if (symbol == null) {
-                throw new RuntimeException(
-                        "Undefined variable '" + name + "' at line " +
-                                t.getLine() + ", column " + t.getCharPositionInLine()
-                );
+                System.out.println("BUILDER WARNING: Undefined variable '" + name + "' at line " +
+                        t.getLine() + ", column " + t.getCharPositionInLine() +
+                        " (will be caught by semantic analyzer)");
+            } else {
+                System.out.println("Resolved variable '" + name + "' in scope '" +
+                        symbolTable.getCurrentScope().getName() + "'. Symbol info: " + symbol);
             }
-            System.out.println("Resolved variable '" + name + "' in scope '" +
-                    symbolTable.getCurrentScope().getName() + "'. Symbol info: " + symbol);
         }
 
 
@@ -340,10 +340,9 @@ public class FlaskASTBuilder extends MiniFlaskParserBaseVisitor<FlaskASTNode> {
 
         for (String name : namesNode.names) {
             if (symbolTable.getCurrentScope().resolve(name) != null && symbolTable.getCurrentScope().getSymbols().containsKey(name)) {
-                throw new RuntimeException(
-                        "Symbol '" + name + "' already defined in current scope at line " +
-                                t.getLine() + ", column " + t.getCharPositionInLine()
-                );
+                System.out.println("BUILDER WARNING: Symbol '" + name + "' already defined in current scope at line " +
+                        t.getLine() + ", column " + t.getCharPositionInLine() +
+                        " (will be caught by semantic analyzer)");
             }
             Symbol symbol = new Symbol(name, SymbolKind.VARIABLE, null,t.getLine(),t.getCharPositionInLine());
             symbolTable.define(symbol);
@@ -365,10 +364,9 @@ public class FlaskASTBuilder extends MiniFlaskParserBaseVisitor<FlaskASTNode> {
         for (String name : namesNode.names) {
             if (symbolTable.getCurrentScope().resolve(name) != null &&
                     symbolTable.getCurrentScope().getSymbols().containsKey(name)) {
-                throw new RuntimeException(
-                        "Symbol '" + name + "' already defined in current scope at line " +
-                                t.getLine() + ", column " + t.getCharPositionInLine()
-                );
+                System.out.println("BUILDER WARNING: Symbol '" + name + "' already defined in current scope at line " +
+                        t.getLine() + ", column " + t.getCharPositionInLine() +
+                        " (will be caught by semantic analyzer)");
             }
 
             Symbol symbol = new Symbol(name, SymbolKind.VARIABLE, null, t.getLine(), t.getCharPositionInLine());

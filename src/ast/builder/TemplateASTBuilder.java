@@ -103,10 +103,9 @@ public class TemplateASTBuilder extends MiniTemplateParserBaseVisitor<TemplateAS
         if (templateSymbolTable.getCurrentScope().resolve(varName) != null &&
                 templateSymbolTable.getCurrentScope().getSymbols().containsKey(varName)) {
 
-            throw new RuntimeException(
-                    "Symbol '" + varName + "' already defined in current scope at line " +
-                            t.getLine() + ", column " + t.getCharPositionInLine()
-            );
+            System.out.println("BUILDER WARNING: Symbol '" + varName + "' already defined in current scope at line " +
+                    t.getLine() + ", column " + t.getCharPositionInLine() +
+                    " (will be caught by semantic analyzer)");
         }
 
         TemplateSymbol symbol = new TemplateSymbol(varName, TemplateSymbolKind.VARIABLE, null, t.getLine(), t.getCharPositionInLine());
@@ -537,14 +536,13 @@ public class TemplateASTBuilder extends MiniTemplateParserBaseVisitor<TemplateAS
         TemplateSymbol symbol = templateSymbolTable.resolve(name);
 
         if (symbol == null) {
-            throw new RuntimeException(
-                    "Undefined variable '" + name + "' at line " +
-                            t.getLine() + ", column " + t.getCharPositionInLine()
-            );
+            System.out.println("BUILDER WARNING: Undefined variable '" + name + "' at line " +
+                    t.getLine() + ", column " + t.getCharPositionInLine() +
+                    " (will be caught by semantic analyzer)");
+        } else {
+            System.out.println("Resolved variable '" + name + "' in scope '" +
+                    templateSymbolTable.getCurrentScope().getName() + "'. Symbol info: " + symbol);
         }
-
-        System.out.println("Resolved variable '" + name + "' in scope '" +
-                templateSymbolTable.getCurrentScope().getName() + "'. Symbol info: " + symbol);
 
         return new TemplateNameExpr(name, t.getLine(), t.getCharPositionInLine());
     }

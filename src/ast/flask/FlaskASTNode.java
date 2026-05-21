@@ -30,6 +30,10 @@ public abstract class FlaskASTNode {
         }
     }
 
+    public String getNodeName() {
+        return nodeName;
+    }
+
     @Override
     public abstract String toString();
 }

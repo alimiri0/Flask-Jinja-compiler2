@@ -37,6 +37,17 @@ public class Scope {
         return null;
     }
 
+    // Search ALL scopes in the tree (for scope error detection)
+    public Symbol resolveDeep(String name) {
+        Symbol s = symbols.get(name);
+        if (s != null) return s;
+        for (Scope child : children) {
+            s = child.resolveDeep(name);
+            if (s != null) return s;
+        }
+        return null;
+    }
+
     public Map<String, Symbol> getSymbols() {
         return symbols;
     }

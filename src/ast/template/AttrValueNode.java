@@ -5,7 +5,7 @@ import java.util.List;
 
 public class AttrValueNode extends TemplateASTNode {
 
-    List<QuotedItemNode> attrValues = new ArrayList();
+    public List<QuotedItemNode> attrValues = new ArrayList();
 
     public AttrValueNode(int line, int column, List<QuotedItemNode> attrValues) {
         super(line, column);

@@ -12,10 +12,15 @@ import ast.builder.FlaskASTBuilder;
 import ast.builder.TemplateASTBuilder;
 import ast.flask.FlaskASTNode;
 import ast.template.TemplateASTNode;
+import ast.semantic.SemanticAnalyzer;
+import ast.semantic.SemanticError;
 import gen.grammers.MiniFlaskLexer;
 import gen.grammers.MiniFlaskParser;
 import gen.grammers.MiniTemplateLexer;
 import gen.grammers.MiniTemplateParser;
+
+import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 
 public class Main {
 
@@ -24,77 +29,151 @@ public class Main {
     // --------------------------------------------------
     public static void main(String[] args) throws Exception {
 
+        // Collect ASTs for semantic analysis
+        List<FlaskASTNode> flaskAsts = new ArrayList<>();
+        Map<String, TemplateASTNode> templateAsts = new LinkedHashMap<>();
+        Map<String, String> templateFileMap = new HashMap<>();
+        // Parse and print all ASTs (maintaining original flow)
         try {
-            printFlaskAST("================================================================ Flask AST ================================================================",
-                    "tests/FlaskTest3(scopes)");
+            flaskAsts.add(printFlaskAST("================================================================ Flask AST ================================================================",
+                    "tests/FlaskTest3(scopes)"));
         } catch (Exception e) {
             System.out.println("Error in FlaskTest3(scopes): " + e.getMessage());
         }
-        // Parser Trees
+
         printParseTree();
 
+        // App Flask + templates
         try {
-            printFlaskAST("================================================================ Flask AST ================================================================",
-                    "App/app.txt");
+            flaskAsts.add(printFlaskAST("================================================================ Flask AST ================================================================",
+                    "App/app.txt"));
         } catch (Exception e) {
             System.out.println("Error in App/app.txt: " + e.getMessage());
         }
         try {
-            printTemplateAST("================================================================ Index Template AST ================================================================",
+            TemplateASTNode ast = printTemplateAST("================================================================ Index Template AST ================================================================",
                     "App/indexTemplate.txt");
+            templateAsts.put("index.html", ast);
+            templateFileMap.put("index.html", "App/indexTemplate.txt");
         } catch (Exception e) {
             System.out.println("Error in App/indexTemplate.txt: " + e.getMessage());
         }
         try {
-            printTemplateAST("================================================================ Create Template AST ================================================================",
+            TemplateASTNode ast = printTemplateAST("================================================================ Create Template AST ================================================================",
                     "App/createTemplate.txt");
+            templateAsts.put("create.html", ast);
+            templateFileMap.put("create.html", "App/createTemplate.txt");
         } catch (Exception e) {
             System.out.println("Error in App/createTemplate.txt: " + e.getMessage());
         }
         try {
-            printTemplateAST("================================================================ Show Template AST ================================================================",
+            TemplateASTNode ast = printTemplateAST("================================================================ Show Template AST ================================================================",
                     "App/showTemplate.txt");
+            templateAsts.put("show.html", ast);
+            templateFileMap.put("show.html", "App/showTemplate.txt");
         } catch (Exception e) {
             System.out.println("Error in App/showTemplate.txt: " + e.getMessage());
         }
 
         // Flask Tests
         try {
-            printFlaskAST("================================================================ Test 1 ================================================================",
-                    "tests/FlaskTest1");
+            flaskAsts.add(printFlaskAST("================================================================ Test 1 ================================================================",
+                    "tests/FlaskTest1"));
         } catch (Exception e) {
             System.out.println("Error in FlaskTest1: " + e.getMessage());
         }
         try {
-            printFlaskAST("================================================================ Test 2 ================================================================",
-                    "tests/FlaskTest2");
+            flaskAsts.add(printFlaskAST("================================================================ Test 2 ================================================================",
+                    "tests/FlaskTest2"));
         } catch (Exception e) {
             System.out.println("Error in FlaskTest2: " + e.getMessage());
         }
 
-        // Template Tests
+        // Template Tests (no matching Flask render_template — used to demonstrate Missing Flask Variable)
         try {
-            printTemplateAST("================================================================ Test 1 ================================================================",
+            TemplateASTNode ast = printTemplateAST("================================================================ Test 1 ================================================================",
                     "tests/JinjaTest1");
+            templateAsts.put("JinjaTest1", ast);
+            templateFileMap.put("JinjaTest1", "tests/JinjaTest1");
         } catch (Exception e) {
             System.out.println("Error in JinjaTest1: " + e.getMessage());
         }
         try {
-            printTemplateAST("================================================================ Test 2 ================================================================",
+            TemplateASTNode ast = printTemplateAST("================================================================ Test 2 ================================================================",
                     "tests/JinjaTest2");
+            templateAsts.put("JinjaTest2", ast);
+            templateFileMap.put("JinjaTest2", "tests/JinjaTest2");
         } catch (Exception e) {
             System.out.println("Error in JinjaTest2: " + e.getMessage());
         }
         try {
-            printTemplateAST("================================================================ Test 3 ================================================================",
+            TemplateASTNode ast = printTemplateAST("================================================================ Test 3 ================================================================",
                     "tests/JinjaTest3");
+            templateAsts.put("JinjaTest3", ast);
+            templateFileMap.put("JinjaTest3", "tests/JinjaTest3");
         } catch (Exception e) {
             System.out.println("Error in JinjaTest3: " + e.getMessage());
         }
 
+        // ================================================================
+        // SEMANTIC ANALYSIS
+        // ================================================================
+        System.out.println("\n\n");
+        System.out.println("====================================================================================================");
+        System.out.println("  SEMANTIC ANALYSIS");
+        System.out.println("====================================================================================================");
+
+        List<SemanticError> totalFlaskErrors = new ArrayList<>();
+        SemanticAnalyzer combinedAnalyzer = new SemanticAnalyzer();
+        Map<String, Set<String>> globalTemplateContextMap = new HashMap<>();
+
+        // Analyze all Flask ASTs and aggregate template context
+        for (FlaskASTNode flaskAst : flaskAsts) {
+            SemanticAnalyzer analyzer = new SemanticAnalyzer();
+            Map<String, Set<String>> ctxMap = analyzer.analyzeFlask(flaskAst);
+            totalFlaskErrors.addAll(analyzer.getAllErrors());
+            // Merge template context maps
+            for (Map.Entry<String, Set<String>> entry : ctxMap.entrySet()) {
+                globalTemplateContextMap.merge(entry.getKey(), entry.getValue(), (a, b) -> { a.addAll(b); return a; });
+            }
+        }
+
+        // Print Flask errors
+        SemanticAnalyzer.printErrors(totalFlaskErrors, "FLASK SEMANTIC ERRORS");
+
+        // Analyze all template ASTs
+        List<SemanticError> totalTemplateErrors = new ArrayList<>();
+        for (Map.Entry<String, TemplateASTNode> entry : templateAsts.entrySet()) {
+            String templateName = entry.getKey();
+            TemplateASTNode templateAst = entry.getValue();
+
+            SemanticAnalyzer analyzer = new SemanticAnalyzer();
+            analyzer.analyzeTemplate(templateAst, templateName, globalTemplateContextMap);
+            totalTemplateErrors.addAll(analyzer.getAllErrors());
+        }
+
+        // Print Template errors
+        SemanticAnalyzer.printErrors(totalTemplateErrors, "TEMPLATE SEMANTIC ERRORS");
+
+        // Print combined summary
+        List<SemanticError> allErrors = new ArrayList<>();
+        allErrors.addAll(totalFlaskErrors);
+        allErrors.addAll(totalTemplateErrors);
+        System.out.println("\nTOTAL SEMANTIC ERRORS FOUND: " + allErrors.size());
+        if (!allErrors.isEmpty()) {
+            System.out.println("Breakdown:");
+            Map<String, Long> counts = new LinkedHashMap<>();
+            for (SemanticError e : allErrors) {
+                counts.merge(e.getErrorType(), 1L, Long::sum);
+            }
+            for (Map.Entry<String, Long> c : counts.entrySet()) {
+                System.out.println("  " + c.getKey() + ": " + c.getValue());
+            }
+        }
+
     }
 
-    private static void printFlaskAST(String title, String filePath) throws Exception {
+    private static FlaskASTNode printFlaskAST(String title, String filePath) throws Exception {
         System.out.println("\n" + title);
 
         MiniFlaskParser parser = createFlaskParser(filePath);
@@ -102,9 +181,10 @@ public class Main {
 
         FlaskASTNode ast = new FlaskASTBuilder().visit(tree);
         System.out.println(ast);
+        return ast;
     }
 
-    private static void printTemplateAST(String title, String filePath) throws Exception {
+    private static TemplateASTNode printTemplateAST(String title, String filePath) throws Exception {
         System.out.println("\n" + title);
 
         MiniTemplateParser parser = createTemplateParser(filePath);
@@ -112,6 +192,7 @@ public class Main {
 
         TemplateASTNode ast = new TemplateASTBuilder().visit(tree);
         System.out.println(ast);
+        return ast;
     }
 
     // --------------------------------------------------
