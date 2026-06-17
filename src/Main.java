@@ -14,6 +14,7 @@ import ast.flask.FlaskASTNode;
 import ast.template.TemplateASTNode;
 import ast.semantic.SemanticAnalyzer;
 import ast.semantic.SemanticError;
+import ast.codegen.CodeGenerator;
 import gen.grammers.MiniFlaskLexer;
 import gen.grammers.MiniFlaskParser;
 import gen.grammers.MiniTemplateLexer;
@@ -44,9 +45,12 @@ public class Main {
         printParseTree();
 
         // App Flask + templates
+        FlaskASTNode appFlaskAst = null;
         try {
-            flaskAsts.add(printFlaskAST("================================================================ Flask AST ================================================================",
-                    "App/app.txt"));
+            FlaskASTNode ast = printFlaskAST("================================================================ Flask AST ================================================================",
+                    "App/app.txt");
+            flaskAsts.add(ast);
+            appFlaskAst = ast;
         } catch (Exception e) {
             System.out.println("Error in App/app.txt: " + e.getMessage());
         }
@@ -171,6 +175,31 @@ public class Main {
             }
         }
 
+        // ================================================================
+        // CODE GENERATION
+        // ================================================================
+        System.out.println("\n\n");
+        System.out.println("====================================================================================================");
+        System.out.println("  CODE GENERATION");
+        System.out.println("====================================================================================================");
+
+        if (appFlaskAst != null) {
+            try {
+                Map<String, TemplateASTNode> appTemplates = new LinkedHashMap<>();
+                appTemplates.put("index.html", templateAsts.get("index.html"));
+                appTemplates.put("show.html", templateAsts.get("show.html"));
+                appTemplates.put("create.html", templateAsts.get("create.html"));
+                appTemplates.put("delete.html", templateAsts.get("delete.html"));
+                CodeGenerator generator = new CodeGenerator(appFlaskAst, appTemplates);
+                generator.generate();
+                System.out.println("Code generation complete. Output: App/generated/");
+            } catch (Exception e) {
+                System.out.println("Code generation failed: " + e.getMessage());
+            }
+        } else {
+            System.out.println("No app AST available, skipping code generation.");
+        }
+
     }
 
     private static FlaskASTNode printFlaskAST(String title, String filePath) throws Exception {
@@ -293,7 +322,7 @@ public class Main {
 
                 if (tokenName != null) {
                     System.out.println(
-                            indent + tokenName + " → \"" + tn.getText() + "\""
+                            indent + tokenName + " \"" + tn.getText() + "\""
                     );
                 }
             }
