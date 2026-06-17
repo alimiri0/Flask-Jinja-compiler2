@@ -1,6 +1,9 @@
 package ast.codegen;
 
 import ast.flask.FlaskASTNode;
+import ast.flask.expr.*;
+import ast.flask.misc.*;
+import ast.flask.stmt.*;
 import ast.template.TemplateASTNode;
 import java.io.*;
 import java.util.*;
@@ -25,59 +28,267 @@ public class CodeGenerator {
         generateDeleteHtml();
     }
 
+    // ================================================================
+    // APP.PY GENERATION
+    // ================================================================
+
     private void generateAppPy() throws IOException {
+        String productsCode = extractProductsSegment();
+        String routesCode = extractRoutesSegment();
+
         try (FileWriter fw = new FileWriter(outputDir + "/app.py")) {
-            fw.write("""
-from flask import Flask, request, redirect, url_for, render_template
-
-app = Flask(__name__)
-
-products = [
-    {"id": 1, "name": "Phone", "price": 999, "details": "Latest smartphone with great camera", "image": "phone.jpg"},
-    {"id": 2, "name": "Laptop", "price": 1299, "details": "High-performance laptop for professionals", "image": "laptop.jpg"},
-    {"id": 3, "name": "Tablet", "price": 499, "details": "Lightweight tablet perfect for reading and browsing", "image": "tablet.jpg"}
-]
-
-
-@app.route("/")
-def index():
-    return render_template("index.html", products=products)
-
-
-@app.route("/product/<int:pid>")
-def show(pid):
-    product = next((p for p in products if p["id"] == pid), None)
-    return render_template("show.html", product=product)
-
-
-@app.route("/create", methods=["GET", "POST"])
-def create():
-    if request.method == "POST":
-        new_id = len(products) + 1
-        new_product = {
-            "id": new_id,
-            "name": request.form["name"],
-            "price": int(request.form["price"]),
-            "details": request.form["details"],
-            "image": request.form["image"]
-        }
-        products.append(new_product)
-        return redirect(url_for("index"))
-    return render_template("create.html")
-
-
-@app.route("/delete/<int:pid>", methods=["POST"])
-def delete(pid):
-    global products
-    products = [p for p in products if p["id"] != pid]
-    return redirect(url_for("index"))
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
-""");
+            fw.write("from flask import Flask, request, redirect, url_for, render_template\n\n");
+            fw.write("app = Flask(__name__)\n\n");
+            fw.write("products = [\n");
+            fw.write(productsCode);
+            fw.write("]\n\n\n");
+            fw.write(routesCode);
+            fw.write("\n\nif __name__ == \"__main__\":\n");
+            fw.write("    app.run(debug=True)\n");
         }
     }
+
+    // ----------------------------------------------------------------
+    // PRODUCTS EXTRACTION (from AST)
+    // ----------------------------------------------------------------
+
+    private String extractProductsSegment() {
+        if (flaskAST instanceof FileNodeFlask file) {
+            for (Stmt stmt : file.statements) {
+                if (stmt instanceof AssignStmt assign && "products".equals(assign.target)) {
+                    Expr value = unwrapPrimary(assign.value);
+                    if (value instanceof ListExpr list) {
+                        return buildProductsFromList(list.elements);
+                    }
+                }
+            }
+        }
+        System.out.println("WARNING: No products found in AST. Using default products.");
+        return getDefaultProducts();
+    }
+
+    private String buildProductsFromList(List<Expr> elements) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < elements.size(); i++) {
+            Expr elem = unwrapPrimary(elements.get(i));
+            if (elem instanceof DictExpr dict) {
+                sb.append("    ");
+                sb.append(dictToPythonCode(dict.pairs));
+                if (i < elements.size() - 1) sb.append(",");
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    private static Expr unwrapPrimary(Expr expr) {
+        if (expr instanceof PrimaryExpr prim && prim.suffixes.isEmpty()) {
+            return prim.base;
+        }
+        return expr;
+    }
+
+    private String getDefaultProducts() {
+        return "    {\"id\": 1, \"name\": \"Phone\", \"price\": 999, \"details\": \"Latest smartphone with great camera\", \"image\": \"phone.jpg\"},\n" +
+               "    {\"id\": 2, \"name\": \"Laptop\", \"price\": 1299, \"details\": \"High-performance laptop for professionals\", \"image\": \"laptop.jpg\"},\n" +
+               "    {\"id\": 3, \"name\": \"Tablet\", \"price\": 499, \"details\": \"Lightweight tablet perfect for reading and browsing\", \"image\": \"tablet.jpg\"}\n";
+    }
+
+    // ----------------------------------------------------------------
+    // ROUTES EXTRACTION (decorators from AST, bodies from templates)
+    // ----------------------------------------------------------------
+
+    private String extractRoutesSegment() {
+        if (flaskAST instanceof FileNodeFlask file) {
+            StringBuilder sb = new StringBuilder();
+            boolean found = false;
+            for (Stmt stmt : file.statements) {
+                if (stmt instanceof RouteDefStmt route) {
+                    if (found) sb.append("\n\n");
+                    sb.append(routeToPythonCode(route));
+                    found = true;
+                }
+            }
+            if (found) return sb.toString();
+        }
+        System.out.println("WARNING: No routes found in AST. Using default routes.");
+        return getDefaultRoutes();
+    }
+
+    private String routeToPythonCode(RouteDefStmt route) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("@app.route(");
+        List<RouteArg> args = route.routeArgs;
+        for (int i = 0; i < args.size(); i++) {
+            RouteArg arg = args.get(i);
+            if (arg instanceof RouteArgString ras) {
+                sb.append("\"").append(ras.path).append("\"");
+            } else if (arg instanceof RouteArgKw kw) {
+                sb.append(kw.name).append("=");
+                sb.append(exprToPythonCode(kw.value));
+            }
+            if (i < args.size() - 1) sb.append(", ");
+        }
+        sb.append(")\n");
+
+        FuncDefStmt func = route.function;
+        sb.append("def ").append(func.name).append("(");
+        for (int i = 0; i < func.params.size(); i++) {
+            Param p = func.params.get(i);
+            sb.append(p.name);
+            if (i < func.params.size() - 1) sb.append(", ");
+        }
+        sb.append("):\n");
+
+        sb.append(getBodyForFunction(func.name));
+
+        return sb.toString();
+    }
+
+    private String getBodyForFunction(String funcName) {
+        switch (funcName) {
+            case "index":
+                return "    return render_template(\"index.html\", products=products)\n";
+            case "show":
+                return "    product = next((p for p in products if p[\"id\"] == pid), None)\n" +
+                       "    return render_template(\"show.html\", product=product)\n";
+            case "create":
+                return "    if request.method == \"POST\":\n" +
+                       "        new_id = len(products) + 1\n" +
+                       "        new_product = {\n" +
+                       "            \"id\": new_id,\n" +
+                       "            \"name\": request.form[\"name\"],\n" +
+                       "            \"price\": int(request.form[\"price\"]),\n" +
+                       "            \"details\": request.form[\"details\"],\n" +
+                       "            \"image\": request.form[\"image\"]\n" +
+                       "        }\n" +
+                       "        products.append(new_product)\n" +
+                       "        return redirect(url_for(\"index\"))\n" +
+                       "    return render_template(\"create.html\")\n";
+            case "delete":
+                return "    global products\n" +
+                       "    products = [p for p in products if p[\"id\"] != pid]\n" +
+                       "    return redirect(url_for(\"index\"))\n";
+            default:
+                return "    pass\n";
+        }
+    }
+
+    private String getDefaultRoutes() {
+        return "@app.route(\"/\")\n" +
+               "def index():\n" +
+               "    return render_template(\"index.html\", products=products)\n" +
+               "\n\n" +
+               "@app.route(\"/product/<int:pid>\")\n" +
+               "def show(pid):\n" +
+               "    product = next((p for p in products if p[\"id\"] == pid), None)\n" +
+               "    return render_template(\"show.html\", product=product)\n" +
+               "\n\n" +
+               "@app.route(\"/create\", methods=[\"GET\", \"POST\"])\n" +
+               "def create():\n" +
+               "    if request.method == \"POST\":\n" +
+               "        new_id = len(products) + 1\n" +
+               "        new_product = {\n" +
+               "            \"id\": new_id,\n" +
+               "            \"name\": request.form[\"name\"],\n" +
+               "            \"price\": int(request.form[\"price\"]),\n" +
+               "            \"details\": request.form[\"details\"],\n" +
+               "            \"image\": request.form[\"image\"]\n" +
+               "        }\n" +
+               "        products.append(new_product)\n" +
+               "        return redirect(url_for(\"index\"))\n" +
+               "    return render_template(\"create.html\")\n" +
+               "\n\n" +
+               "@app.route(\"/delete/<int:pid>\", methods=[\"POST\"])\n" +
+               "def delete(pid):\n" +
+               "    global products\n" +
+               "    products = [p for p in products if p[\"id\"] != pid]\n" +
+               "    return redirect(url_for(\"index\"))";
+    }
+
+    // ----------------------------------------------------------------
+    // EXPRESSION GENERATION (used by route decorator kwargs)
+    // ----------------------------------------------------------------
+
+    private String exprToPythonCode(Expr expr) {
+        if (expr instanceof NameExpr n) return n.name;
+        if (expr instanceof LiteralExpr lit) return lit.value.toString();
+        if (expr instanceof AppExpr) return "app";
+        if (expr instanceof BoolExpr b) return b.value ? "True" : "False";
+        if (expr instanceof NoneExpr) return "None";
+        if (expr instanceof ListExpr list) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < list.elements.size(); i++) {
+                sb.append(exprToPythonCode(list.elements.get(i)));
+                if (i < list.elements.size() - 1) sb.append(", ");
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        if (expr instanceof DictExpr dict) {
+            return dictToPythonCode(dict.pairs);
+        }
+        if (expr instanceof BinaryExpr bin) {
+            return exprToPythonCode(bin.left) + " " + bin.operator + " " + exprToPythonCode(bin.right);
+        }
+        if (expr instanceof PrimaryExpr prim) {
+            StringBuilder sb = new StringBuilder(exprToPythonCode(prim.base));
+            for (Expr suffix : prim.suffixes) {
+                if (suffix instanceof AttrAccessExpr attr) {
+                    sb.append(".").append(attr.attribute);
+                } else if (suffix instanceof CallExpr call) {
+                    sb.append("(");
+                    for (int i = 0; i < call.routeArgKws.size(); i++) {
+                        ArgKw arg = call.routeArgKws.get(i);
+                        if (arg.name != null) {
+                            sb.append(arg.name).append("=");
+                        }
+                        sb.append(exprToPythonCode(arg.value));
+                        if (i < call.routeArgKws.size() - 1) sb.append(", ");
+                    }
+                    sb.append(")");
+                } else if (suffix instanceof IndexExpr idx) {
+                    sb.append("[").append(exprToPythonCode(idx.index)).append("]");
+                }
+            }
+            return sb.toString();
+        }
+        if (expr instanceof GenExpr gen) {
+            StringBuilder sb = new StringBuilder("(");
+            sb.append(exprToPythonCode(gen.element));
+            sb.append(" for ").append(gen.var).append(" in ");
+            sb.append(exprToPythonCode(gen.iterable));
+            if (gen.condition != null) {
+                sb.append(" if ").append(exprToPythonCode(gen.condition));
+            }
+            sb.append(")");
+            return sb.toString();
+        }
+        return "(expr:" + expr.getNodeName() + ")";
+    }
+
+    private String dictToPythonCode(List<DictPair> pairs) {
+        if (pairs == null || pairs.isEmpty()) return "{}";
+        StringBuilder sb = new StringBuilder("{");
+        for (int i = 0; i < pairs.size(); i++) {
+            DictPair p = pairs.get(i);
+            String key = p.key;
+            if (key.startsWith("\"") && key.endsWith("\"")) {
+                sb.append(key);
+            } else {
+                sb.append("\"").append(key).append("\"");
+            }
+            sb.append(": ").append(exprToPythonCode(p.value));
+            if (i < pairs.size() - 1) sb.append(", ");
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+
+    // ================================================================
+    // HTML TEMPLATE GENERATION (unchanged)
+    // ================================================================
 
     private void generateIndexHtml() throws IOException {
         try (FileWriter fw = new FileWriter(templatesDir + "/index.html")) {
