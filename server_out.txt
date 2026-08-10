@@ -1,0 +1,6 @@
+WARNING: No routes found in AST. Using default routes.
+[REGENERATION] Products changed ? regenerated HTML pages (3 products)
+Java HTTP Server started on http://localhost:8080
+Products are synced with App/generated/app.py and App/generated/templates/
+WARNING: No routes found in AST. Using default routes.
+[REGENERATION] Products changed ? regenerated HTML pages (2 products)

@@ -175,6 +175,48 @@ public class CodeGenerator {
         }
     }
 
+    // ================================================================
+    // REGENERATION (for Java HTTP Server integration)
+    // ================================================================
+
+    public void regenerate(List<Map<String, Object>> products) throws IOException {
+        new File(templatesDir).mkdirs();
+        try (FileWriter fw = new FileWriter(outputDir + "/app.py")) {
+            fw.write("from flask import Flask, request, redirect, url_for, render_template\n\n");
+            fw.write("app = Flask(__name__)\n\n");
+            fw.write("products = [\n");
+            for (int i = 0; i < products.size(); i++) {
+                fw.write("    " + productMapToPythonDict(products.get(i)));
+                if (i < products.size() - 1) fw.write(",");
+                fw.write("\n");
+            }
+            fw.write("]\n\n\n");
+            fw.write(extractRoutesSegment());
+            fw.write("\n\nif __name__ == \"__main__\":\n");
+            fw.write("    app.run(debug=True)\n");
+        }
+        generateIndexHtml();
+        generateShowHtml();
+        generateCreateHtml();
+        generateDeleteHtml();
+        System.out.println("[REGENERATION] Products changed \u2192 regenerated HTML pages (" + products.size() + " products)");
+    }
+
+    private String productMapToPythonDict(Map<String, Object> p) {
+        StringBuilder sb = new StringBuilder("{");
+        sb.append("\"id\": ").append(p.get("id"));
+        sb.append(", \"name\": \"").append(escapePythonString((String) p.get("name"))).append("\"");
+        sb.append(", \"price\": ").append(p.get("price"));
+        sb.append(", \"details\": \"").append(escapePythonString((String) p.get("details"))).append("\"");
+        sb.append(", \"image\": \"").append(escapePythonString((String) p.get("image"))).append("\"");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    private String escapePythonString(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+
     private String getDefaultRoutes() {
         return "@app.route(\"/\")\n" +
                "def index():\n" +

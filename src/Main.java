@@ -30,6 +30,12 @@ public class Main {
     // --------------------------------------------------
     public static void main(String[] args) throws Exception {
 
+        // If --server flag is passed, launch the Java HTTP server instead
+        if (args.length > 0 && "--server".equals(args[0])) {
+            server.AppServer.main(new String[0]);
+            return;
+        }
+
         // Collect ASTs for semantic analysis
         List<FlaskASTNode> flaskAsts = new ArrayList<>();
         Map<String, TemplateASTNode> templateAsts = new LinkedHashMap<>();
