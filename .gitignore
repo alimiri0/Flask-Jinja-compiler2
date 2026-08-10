@@ -1,0 +1,24 @@
+# Compiled Java classes
+out/
+*.class
+
+# ANTLR generated cache
+.antlr/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Server temp output
+server_out.txt
+
+# Python cache (from generated Flask app)
+__pycache__/
+*.pyc
+
+project_memory/
