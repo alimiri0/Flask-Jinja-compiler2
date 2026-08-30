@@ -2,10 +2,6 @@ package ast.template;
 
 import ast.template.expr.TemplateExpr;
 
-/**
- * Generic Jinja node
- * type: "for", "if", "else"
- */
 public class TemplateJinjaBlockNode extends TemplateElementNode {
     public final String type;
     public final String varName;

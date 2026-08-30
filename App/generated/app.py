@@ -4,8 +4,8 @@ app = Flask(__name__)
 
 products = [
     {"id": 1, "name": "Phone", "price": 999, "details": "Latest smartphone with great camera", "image": "phone.jpg"},
-    {"id": 3, "name": "Tablet", "price": 499, "details": "Lightweight tablet perfect for reading and browsing", "image": "tablet.jpg"},
-    {"id": 4, "name": "aa", "price": 55, "details": "aa", "image": "aa"}
+    {"id": 2, "name": "Laptop", "price": 1299, "details": "High-performance laptop for professionals", "image": "laptop.jpg"},
+    {"id": 3, "name": "Tablet", "price": 499, "details": "Lightweight tablet perfect for reading and browsing", "image": "tablet.jpg"}
 ]
 
 
@@ -35,12 +35,6 @@ def create():
         return redirect(url_for("index"))
     return render_template("create.html")
 
-
-@app.route("/delete/<int:pid>", methods=["POST"])
-def delete(pid):
-    global products
-    products = [p for p in products if p["id"] != pid]
-    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)

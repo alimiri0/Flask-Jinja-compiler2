@@ -12,12 +12,11 @@ public class TemplateSymbolTable {
 
     public TemplateSymbolTable() {
         this.globalTemplateScope = new TemplateScope(null, "global");
-        // Flask
+
         globalTemplateScope.define(new TemplateSymbol("__name__", TemplateSymbolKind.VARIABLE, null, -1, -1));
         globalTemplateScope.define(new TemplateSymbol("next", TemplateSymbolKind.FUNCTION, null, -1, -1));
         globalTemplateScope.define(new TemplateSymbol("len", TemplateSymbolKind.FUNCTION, null, -1, -1));
 
-        // Template
         globalTemplateScope.define(new TemplateSymbol("products", TemplateSymbolKind.VARIABLE, null, -1, -1));
         globalTemplateScope.define(new TemplateSymbol("url_for", TemplateSymbolKind.VARIABLE, null, -1, -1));
         globalTemplateScope.define(new TemplateSymbol("p", TemplateSymbolKind.VARIABLE, null, -1, -1));

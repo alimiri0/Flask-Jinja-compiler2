@@ -21,7 +21,7 @@ public class TemplateSemanticAnalyzer {
         this.templateFileName = templateFileName;
         this.flaskContextVars = flaskContextVars != null ? flaskContextVars : new HashSet<>();
         enterScope("template");
-        // Built-in template globals
+
         define("url_for", "function");
         define("render_template", "function");
         define("range", "function");
@@ -35,10 +35,6 @@ public class TemplateSemanticAnalyzer {
         exitScope();
         return errors;
     }
-
-    // ---------------------------------------------------------------
-    // Scope management
-    // ---------------------------------------------------------------
 
     private void enterScope(String name) {
         scopeStack.push(new HashMap<>());
@@ -69,14 +65,9 @@ public class TemplateSemanticAnalyzer {
         return false;
     }
 
-    // ---------------------------------------------------------------
-    // Main dispatch — check MOST specific types FIRST
-    // ---------------------------------------------------------------
-
     private void visitNode(TemplateASTNode node) {
         if (node == null) return;
 
-        // Most specific types first (check before parent TemplateElementNode)
         if (node instanceof TemplateHtmlTagNode) {
             visitHtmlTag((TemplateHtmlTagNode) node);
         } else if (node instanceof TemplateJinjaVarNode) {
@@ -92,14 +83,14 @@ public class TemplateSemanticAnalyzer {
                 visitQuotedItem(item);
             }
         } else if (node instanceof TemplateTextNode) {
-            // Plain text — nothing to check
+
         } else if (node instanceof TemplateElementNode) {
-            // Use direct .children field access (TemplateElementNode shadows parent's children)
+
             for (TemplateASTNode child : ((TemplateElementNode) node).children) {
                 visitNode(child);
             }
         } else {
-            // Fallback for non-TemplateElementNode types — use direct children field
+
             for (TemplateASTNode child : node.children) {
                 visitNode(child);
             }
@@ -116,13 +107,9 @@ public class TemplateSemanticAnalyzer {
     }
 
     private void visitStyleTag(TemplateStyleTagNode node) {
-        // CSS rules — visit to check Jinja vars inside CSS
+
         visitCssNode(node.rules);
     }
-
-    // ---------------------------------------------------------------
-    // Jinja-specific visitors
-    // ---------------------------------------------------------------
 
     private void visitJinjaVar(TemplateJinjaVarNode node) {
         if (node.expr != null) {
@@ -134,7 +121,7 @@ public class TemplateSemanticAnalyzer {
         String type = node.type;
 
         if ("for".equals(type)) {
-            // {% for varName in iterable %}
+
             visitTemplateExpr(node.conditionOrIterable);
             enterScope("for");
             if (node.varName != null) {
@@ -145,7 +132,7 @@ public class TemplateSemanticAnalyzer {
             }
             exitScope();
         } else if ("if".equals(type) || "elif".equals(type)) {
-            // {% if condition %}
+
             enterScope("if");
             if (node.conditionOrIterable != null) {
                 visitTemplateExpr(node.conditionOrIterable);
@@ -161,10 +148,6 @@ public class TemplateSemanticAnalyzer {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Attribute / quoted item visitors
-    // ---------------------------------------------------------------
-
     private void visitAttrNode(TemplateAttrNode node) {
         if (node.attrValueNode != null) {
             for (QuotedItemNode item : node.attrValueNode.attrValues) {
@@ -175,17 +158,13 @@ public class TemplateSemanticAnalyzer {
 
     private void visitQuotedItem(QuotedItemNode item) {
         if (item instanceof AttrTextNode) {
-            // Plain text
+
         } else if (item instanceof AttrJinjaVarNode) {
             visitJinjaVar(((AttrJinjaVarNode) item).var);
         } else if (item instanceof AttrJinjaBlockNode) {
             visitJinjaBlock(((AttrJinjaBlockNode) item).block);
         }
     }
-
-    // ---------------------------------------------------------------
-    // Template expression visitors
-    // ---------------------------------------------------------------
 
     private String visitTemplateExpr(TemplateExpr expr) {
         if (expr == null) return "none";
@@ -259,9 +238,9 @@ public class TemplateSemanticAnalyzer {
         String type = resolve(name);
 
         if (type == null) {
-            // Check if it's a Flask context variable
+
             if (!flaskContextVars.contains(name)) {
-                // Determine if it's undefined or missing Flask variable
+
                 if (existsInAnyScope(name)) {
                     errors.add(new SemanticError(
                             "Scope Error", node.getNodeName(), node.line,
@@ -275,7 +254,7 @@ public class TemplateSemanticAnalyzer {
                     ));
                 }
             } else {
-                // It IS a Flask context variable — define it in current scope
+
                 define(name, "unknown");
             }
             return "unknown";
@@ -306,10 +285,6 @@ public class TemplateSemanticAnalyzer {
         return "unknown";
     }
 
-    // ---------------------------------------------------------------
-    // CSS — only check Jinja vars embedded inside
-    // ---------------------------------------------------------------
-
     private void visitCssNode(TemplateASTNode node) {
         if (node == null) return;
 
@@ -338,7 +313,7 @@ public class TemplateSemanticAnalyzer {
                 }
             }
         }
-        // Other CSS node types don't contain Jinja vars
+
     }
 
     private void visitSelectorList(CssSelectorListNode list) {
@@ -347,7 +322,7 @@ public class TemplateSemanticAnalyzer {
                 for (SelectorUnitNode unit : sel.units) {
                     for (TemplateASTNode part : unit.parts) {
                         if (part instanceof CssJinjaVarNode) {
-                            // CSS Jinja var embeds a TemplateJinjaVarNode as expr
+
                             TemplateASTNode inner = ((CssJinjaVarNode) part).expr;
                             if (inner instanceof TemplateJinjaVarNode) {
                                 visitJinjaVar((TemplateJinjaVarNode) inner);
@@ -381,10 +356,6 @@ public class TemplateSemanticAnalyzer {
             }
         }
     }
-
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
 
     private boolean bothKnownAndDifferent(String a, String b) {
         if ("unknown".equals(a) || "unknown".equals(b)) return false;

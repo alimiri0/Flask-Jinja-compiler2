@@ -21,9 +21,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Builds simplified AST from MiniTemplateParser parse tree.
- */
 public class TemplateASTBuilder extends MiniTemplateParserBaseVisitor<TemplateASTNode> {
     private final TemplateSymbolTable templateSymbolTable;
 
@@ -401,9 +398,6 @@ public class TemplateASTBuilder extends MiniTemplateParserBaseVisitor<TemplateAS
         );
     }
 
-
-    // EXPRESSION
-
     @Override
     public TemplateASTNode visitFlaskEqualityExpr(MiniTemplateParser.FlaskEqualityExprContext ctx) {
         TemplateExpr left = (TemplateExpr) visit(ctx.additive(0));
@@ -769,7 +763,7 @@ public class TemplateASTBuilder extends MiniTemplateParserBaseVisitor<TemplateAS
                         ctx.start.getCharPositionInLine()
                 );
 
-        selector.units = new ArrayList<>(); // IMPORTANT if not final
+        selector.units = new ArrayList<>();
 
         selector.units.add((SelectorUnitNode) visit(ctx.selectorUnit(0)));
 
@@ -790,10 +784,8 @@ public class TemplateASTBuilder extends MiniTemplateParserBaseVisitor<TemplateAS
                         ctx.start.getCharPositionInLine()
                 );
 
-        // base selector part
         unit.parts.add(visit(ctx.baseSelectorPart()));
 
-        // suffix parts
         for (ParseTree child : ctx.children.subList(1, ctx.children.size())) {
             TemplateASTNode part = visit(child);
             if (part != null) {

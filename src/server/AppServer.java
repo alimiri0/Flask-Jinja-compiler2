@@ -72,9 +72,6 @@ public class AppServer {
         }
     }
 
-    // ------------------------------------------------------------
-    // GET / — product listing page
-    // ------------------------------------------------------------
     private void handleIndex(HttpExchange exchange) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html><html><head><title>Products</title><style>");
@@ -122,9 +119,6 @@ public class AppServer {
         sendResponse(exchange, 200, sb.toString());
     }
 
-    // ------------------------------------------------------------
-    // GET /product?id=<id> — product detail page
-    // ------------------------------------------------------------
     private void handleShow(HttpExchange exchange) throws IOException {
         int id = parseIntQuery(exchange, "id", -1);
         Map<String, Object> product = findProductById(id);
@@ -173,9 +167,6 @@ public class AppServer {
         sendResponse(exchange, 200, sb.toString());
     }
 
-    // ------------------------------------------------------------
-    // GET /create — add product form
-    // ------------------------------------------------------------
     private void handleCreateForm(HttpExchange exchange) throws IOException {
         String html = """
             <!DOCTYPE html>
@@ -224,9 +215,6 @@ public class AppServer {
         sendResponse(exchange, 200, html);
     }
 
-    // ------------------------------------------------------------
-    // POST /create — add product and regenerate
-    // ------------------------------------------------------------
     private void handleCreateAction(HttpExchange exchange) throws IOException {
         Map<String, String> formData = parseFormData(exchange);
 
@@ -250,9 +238,6 @@ public class AppServer {
         redirect(exchange, "/");
     }
 
-    // ------------------------------------------------------------
-    // POST /delete?id=<id> — remove product and regenerate
-    // ------------------------------------------------------------
     private void handleDeleteAction(HttpExchange exchange) throws IOException {
         int id = parseIntQuery(exchange, "id", -1);
         products.removeIf(p -> (int) p.get("id") == id);
@@ -261,10 +246,6 @@ public class AppServer {
 
         redirect(exchange, "/");
     }
-
-    // ================================================================
-    // HELPERS
-    // ================================================================
 
     private Map<String, String> parseFormData(HttpExchange exchange) throws IOException {
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);

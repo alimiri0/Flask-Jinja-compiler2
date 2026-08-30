@@ -519,14 +519,14 @@ public class FlaskASTBuilder extends MiniFlaskParserBaseVisitor<FlaskASTNode> {
 
     @Override
     public FlaskASTNode visitFlaskStarParam(MiniFlaskParser.FlaskStarParamContext ctx) {
-        String name = "*" + ctx.IDENT().getText(); // encode star in name
+        String name = "*" + ctx.IDENT().getText();
         Token t = ctx.getStart();
         return new Param(name, null, t.getLine(), t.getCharPositionInLine());
     }
 
     @Override
     public FlaskASTNode visitFlaskDoubleStarParam(MiniFlaskParser.FlaskDoubleStarParamContext ctx) {
-        String name = "**" + ctx.IDENT().getText(); // encode double star
+        String name = "**" + ctx.IDENT().getText();
         Token t = ctx.getStart();
         return new Param(name, null, t.getLine(), t.getCharPositionInLine());
     }

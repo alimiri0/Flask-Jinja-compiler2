@@ -28,10 +28,6 @@ public class CodeGenerator {
         generateDeleteHtml();
     }
 
-    // ================================================================
-    // APP.PY GENERATION
-    // ================================================================
-
     private void generateAppPy() throws IOException {
         String productsCode = extractProductsSegment();
         String routesCode = extractRoutesSegment();
@@ -47,10 +43,6 @@ public class CodeGenerator {
             fw.write("    app.run(debug=True)\n");
         }
     }
-
-    // ----------------------------------------------------------------
-    // PRODUCTS EXTRACTION (from AST)
-    // ----------------------------------------------------------------
 
     private String extractProductsSegment() {
         if (flaskAST instanceof FileNodeFlask file) {
@@ -93,10 +85,6 @@ public class CodeGenerator {
                "    {\"id\": 2, \"name\": \"Laptop\", \"price\": 1299, \"details\": \"High-performance laptop for professionals\", \"image\": \"laptop.jpg\"},\n" +
                "    {\"id\": 3, \"name\": \"Tablet\", \"price\": 499, \"details\": \"Lightweight tablet perfect for reading and browsing\", \"image\": \"tablet.jpg\"}\n";
     }
-
-    // ----------------------------------------------------------------
-    // ROUTES EXTRACTION (decorators from AST, bodies from templates)
-    // ----------------------------------------------------------------
 
     private String extractRoutesSegment() {
         if (flaskAST instanceof FileNodeFlask file) {
@@ -175,10 +163,6 @@ public class CodeGenerator {
         }
     }
 
-    // ================================================================
-    // REGENERATION (for Java HTTP Server integration)
-    // ================================================================
-
     public void regenerate(List<Map<String, Object>> products) throws IOException {
         new File(templatesDir).mkdirs();
         try (FileWriter fw = new FileWriter(outputDir + "/app.py")) {
@@ -248,10 +232,6 @@ public class CodeGenerator {
                "    products = [p for p in products if p[\"id\"] != pid]\n" +
                "    return redirect(url_for(\"index\"))";
     }
-
-    // ----------------------------------------------------------------
-    // EXPRESSION GENERATION (used by route decorator kwargs)
-    // ----------------------------------------------------------------
 
     private String exprToPythonCode(Expr expr) {
         if (expr instanceof NameExpr n) return n.name;
@@ -327,10 +307,6 @@ public class CodeGenerator {
         sb.append("}");
         return sb.toString();
     }
-
-    // ================================================================
-    // HTML TEMPLATE GENERATION (unchanged)
-    // ================================================================
 
     private void generateIndexHtml() throws IOException {
         try (FileWriter fw = new FileWriter(templatesDir + "/index.html")) {

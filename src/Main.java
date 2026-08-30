@@ -25,22 +25,17 @@ import java.util.AbstractMap.SimpleEntry;
 
 public class Main {
 
-    // --------------------------------------------------
-    // Entry point
-    // --------------------------------------------------
     public static void main(String[] args) throws Exception {
 
-        // If --server flag is passed, launch the Java HTTP server instead
         if (args.length > 0 && "--server".equals(args[0])) {
             server.AppServer.main(new String[0]);
             return;
         }
 
-        // Collect ASTs for semantic analysis
         List<FlaskASTNode> flaskAsts = new ArrayList<>();
         Map<String, TemplateASTNode> templateAsts = new LinkedHashMap<>();
         Map<String, String> templateFileMap = new HashMap<>();
-        // Parse and print all ASTs (maintaining original flow)
+
         try {
             flaskAsts.add(printFlaskAST("================================================================ Flask AST ================================================================",
                     "tests/FlaskTest3(scopes)"));
@@ -50,7 +45,6 @@ public class Main {
 
         printParseTree();
 
-        // App Flask + templates
         FlaskASTNode appFlaskAst = null;
         try {
             FlaskASTNode ast = printFlaskAST("================================================================ Flask AST ================================================================",
@@ -85,7 +79,6 @@ public class Main {
             System.out.println("Error in App/showTemplate.txt: " + e.getMessage());
         }
 
-        // Flask Tests
         try {
             flaskAsts.add(printFlaskAST("================================================================ Test 1 ================================================================",
                     "tests/FlaskTest1"));
@@ -99,7 +92,6 @@ public class Main {
             System.out.println("Error in FlaskTest2: " + e.getMessage());
         }
 
-        // Template Tests (no matching Flask render_template — used to demonstrate Missing Flask Variable)
         try {
             TemplateASTNode ast = printTemplateAST("================================================================ Test 1 ================================================================",
                     "tests/JinjaTest1");
@@ -125,9 +117,6 @@ public class Main {
             System.out.println("Error in JinjaTest3: " + e.getMessage());
         }
 
-        // ================================================================
-        // SEMANTIC ANALYSIS
-        // ================================================================
         System.out.println("\n\n");
         System.out.println("====================================================================================================");
         System.out.println("  SEMANTIC ANALYSIS");
@@ -137,21 +126,18 @@ public class Main {
         SemanticAnalyzer combinedAnalyzer = new SemanticAnalyzer();
         Map<String, Set<String>> globalTemplateContextMap = new HashMap<>();
 
-        // Analyze all Flask ASTs and aggregate template context
         for (FlaskASTNode flaskAst : flaskAsts) {
             SemanticAnalyzer analyzer = new SemanticAnalyzer();
             Map<String, Set<String>> ctxMap = analyzer.analyzeFlask(flaskAst);
             totalFlaskErrors.addAll(analyzer.getAllErrors());
-            // Merge template context maps
+
             for (Map.Entry<String, Set<String>> entry : ctxMap.entrySet()) {
                 globalTemplateContextMap.merge(entry.getKey(), entry.getValue(), (a, b) -> { a.addAll(b); return a; });
             }
         }
 
-        // Print Flask errors
         SemanticAnalyzer.printErrors(totalFlaskErrors, "FLASK SEMANTIC ERRORS");
 
-        // Analyze all template ASTs
         List<SemanticError> totalTemplateErrors = new ArrayList<>();
         for (Map.Entry<String, TemplateASTNode> entry : templateAsts.entrySet()) {
             String templateName = entry.getKey();
@@ -162,10 +148,8 @@ public class Main {
             totalTemplateErrors.addAll(analyzer.getAllErrors());
         }
 
-        // Print Template errors
         SemanticAnalyzer.printErrors(totalTemplateErrors, "TEMPLATE SEMANTIC ERRORS");
 
-        // Print combined summary
         List<SemanticError> allErrors = new ArrayList<>();
         allErrors.addAll(totalFlaskErrors);
         allErrors.addAll(totalTemplateErrors);
@@ -181,9 +165,6 @@ public class Main {
             }
         }
 
-        // ================================================================
-        // CODE GENERATION
-        // ================================================================
         System.out.println("\n\n");
         System.out.println("====================================================================================================");
         System.out.println("  CODE GENERATION");
@@ -230,9 +211,6 @@ public class Main {
         return ast;
     }
 
-    // --------------------------------------------------
-    // Parser creation helpers
-    // --------------------------------------------------
     private static MiniFlaskParser createFlaskParser(String filePath) throws Exception {
         CharStream input = CharStreams.fromFileName(filePath);
         MiniFlaskLexer lexer = new MiniFlaskLexer(input);
@@ -247,9 +225,6 @@ public class Main {
         return new MiniTemplateParser(tokens);
     }
 
-    // --------------------------------------------------
-    // Parser tree printing (UNCHANGED LOGIC)
-    // --------------------------------------------------
     private static void printParseTree() throws Exception {
 
         parseAndPrint(
@@ -285,9 +260,6 @@ public class Main {
         );
     }
 
-    // --------------------------------------------------
-    // Generic parse + print pipeline (parser tree)
-    // --------------------------------------------------
     private static <L extends Lexer, P extends Parser> void parseAndPrint(
             String title,
             String filePath,
@@ -307,9 +279,6 @@ public class Main {
         printTree(tree, parser, 0);
     }
 
-    // --------------------------------------------------
-    // Pretty parse tree printer (UNCHANGED)
-    // --------------------------------------------------
     private static void printTree(ParseTree tree, Parser parser, int depth) {
         String indent = "  ".repeat(depth);
 
@@ -335,10 +304,6 @@ public class Main {
         }
     }
 
-
-    // --------------------------------------------------
-    // Functional helpers (parser tree only)
-    // --------------------------------------------------
     @FunctionalInterface
     interface LexerFactory<L extends Lexer> {
         L create(CharStream input);

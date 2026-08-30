@@ -23,13 +23,10 @@ public class Scope {
         return children;
     }
 
-
-    // Add a symbol to the current scope
     public void define(Symbol symbol) {
         symbols.put(symbol.name, symbol);
     }
 
-    // Look up symbol recursively in parent scopes
     public Symbol resolve(String name) {
         Symbol s = symbols.get(name);
         if (s != null) return s;
@@ -37,7 +34,6 @@ public class Scope {
         return null;
     }
 
-    // Search ALL scopes in the tree (for scope error detection)
     public Symbol resolveDeep(String name) {
         Symbol s = symbols.get(name);
         if (s != null) return s;

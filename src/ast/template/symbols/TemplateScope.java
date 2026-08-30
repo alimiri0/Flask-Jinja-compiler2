@@ -25,13 +25,10 @@ public class TemplateScope {
         return children;
     }
 
-
-    // Add a symbol to the current scope
     public void define(TemplateSymbol templateSymbol) {
         symbols.put(templateSymbol.name, templateSymbol);
     }
 
-    // Look up symbol recursively in parent scopes
     public TemplateSymbol resolve(String name) {
         TemplateSymbol s = symbols.get(name);
         if (s != null) return s;
@@ -39,7 +36,6 @@ public class TemplateScope {
         return null;
     }
 
-    // Search ALL scopes in the tree (for scope error detection)
     public TemplateSymbol resolveDeep(String name) {
         TemplateSymbol s = symbols.get(name);
         if (s != null) return s;

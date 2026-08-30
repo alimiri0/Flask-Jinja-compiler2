@@ -5,11 +5,6 @@ import ast.template.TemplateASTNode;
 
 import java.util.*;
 
-/**
- * Unified entry point for semantic analysis.
- * Analyzes Flask AST, extracts template context variables,
- * then analyzes each Template AST against those contexts.
- */
 public class SemanticAnalyzer {
 
     private final List<SemanticError> allErrors;
@@ -18,10 +13,6 @@ public class SemanticAnalyzer {
         this.allErrors = new ArrayList<>();
     }
 
-    /**
-     * Run semantic analysis on a Flask AST and collect errors.
-     * Returns the template context map for later use.
-     */
     public Map<String, Set<String>> analyzeFlask(FlaskASTNode flaskRoot) {
         FlaskSemanticAnalyzer flaskAnalyzer = new FlaskSemanticAnalyzer();
         List<SemanticError> errors = flaskAnalyzer.analyze(flaskRoot);
@@ -29,10 +20,6 @@ public class SemanticAnalyzer {
         return flaskAnalyzer.getTemplateContextMap();
     }
 
-    /**
-     * Run semantic analysis on a Template AST,
-     * using the Flask-derived context variable map.
-     */
     public void analyzeTemplate(TemplateASTNode templateRoot,
                                  String templateFileName,
                                  Map<String, Set<String>> templateContextMap) {
@@ -54,9 +41,6 @@ public class SemanticAnalyzer {
         return !allErrors.isEmpty();
     }
 
-    /**
-     * Print all collected errors to stdout in a readable format.
-     */
     public static void printErrors(List<SemanticError> errors, String title) {
         if (errors.isEmpty()) {
             System.out.println("\nNo semantic errors found.");

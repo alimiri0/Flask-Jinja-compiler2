@@ -1,0 +1,36 @@
+# AGENT_LOG.md — Agent Session Log
+
+## [2026-08-30] - Session: v2.1 All comments removed (user request)
+- Goal: Remove ALL comments (//, /* */, /** */) from every hand-written source file: src/Main.java, all src/ast/ (builder, flask, template, semantic, codegen), all src/server/
+- Files read: project_memory/RULES.md, PROTECTED.md, STRUCTURE.md, CHANGELOG.md, README.md, git status/log, all 110 in-scope .java files
+- User confirmation obtained: semantic analyzer files (listed in PROTECTED.md) are in scope — clean them too
+- Changes made:
+  - MODIFIED: src/Main.java — all comments removed
+  - MODIFIED: src/ast/builder/FlaskASTBuilder.java — all comments removed
+  - MODIFIED: src/ast/builder/TemplateASTBuilder.java — all comments removed
+  - MODIFIED: src/ast/codegen/CodeGenerator.java — all comments removed
+  - MODIFIED: src/ast/flask/misc/Params.java — all comments removed
+  - MODIFIED: src/ast/flask/symbols/Scope.java — all comments removed
+  - MODIFIED: src/ast/semantic/FlaskSemanticAnalyzer.java — all comments removed
+  - MODIFIED: src/ast/semantic/SemanticAnalyzer.java — all comments removed
+  - MODIFIED: src/ast/semantic/TemplateSemanticAnalyzer.java — all comments removed
+  - MODIFIED: src/ast/template/TemplateASTNode.java — all comments removed
+  - MODIFIED: src/ast/template/TemplateElementNode.java — all comments removed
+  - MODIFIED: src/ast/template/TemplateJinjaBlockNode.java — all comments removed
+  - MODIFIED: src/ast/template/css/selector/CssPseudoClassNode.java — all comments removed
+  - MODIFIED: src/ast/template/symbols/TemplateScope.java — all comments removed
+  - MODIFIED: src/ast/template/symbols/TemplateSymbolTable.java — all comments removed
+  - MODIFIED: src/server/AppServer.java — all comments removed
+  - ADDED: AGENT_LOG.md — this file (missing, auto-generated per RULES.md)
+  - MODIFIED: project_memory/CHANGELOG.md — added [v2.1] entry
+  - No files deleted or renamed
+- Method: wrote a string-literal-aware comment stripper (temp: C:\Users\me\AppData\Local\Temp\opencode\strip_comments.py); preserves string literals containing // or /*, preserves CRLF/BOM and pre-existing blank-line structure; full-line comments become blank lines; collapsed only blank runs created by removed comments
+- Verification:
+  - Rebuild with exact README command: javac exit 0 (same unchecked-ops note as baseline)
+  - java -cp "out;dependencies/antlr-4.13.2-complete.jar" Main: exit 0, stdout byte-identical (SHA-256), program stderr identical (36 lines), 3109 stdout lines
+  - Same ASTs, same 51 semantic errors, identical App/generated/ output
+  - git diff programmatically verified: every change is comment-only, zero code lines altered
+  - 0 residual // or /* outside string literals in cleaned files
+  - Protected files (semantic/*) cleaned only after explicit user confirmation
+  - .g4 grammars, src/gen/, src/grammers/.antlr/, App/generated/, dependencies/ untouched
+- Current status: project is comment-free in all hand-written source; fully compiles and runs identically to pre-cleanup baseline

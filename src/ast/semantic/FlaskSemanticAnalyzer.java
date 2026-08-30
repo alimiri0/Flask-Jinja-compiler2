@@ -10,10 +10,10 @@ import java.util.*;
 public class FlaskSemanticAnalyzer {
 
     private final List<SemanticError> errors;
-    private final Deque<Map<String, String>> scopeStack;    // var name → type
-    private final Deque<String> scopeNameStack;              // scope name for debug
-    private final Map<String, Set<String>> templateContextMap; // template file → context vars
-    private final Deque<ExitedScope> exitedScopes;           // for Scope Error detection
+    private final Deque<Map<String, String>> scopeStack;
+    private final Deque<String> scopeNameStack;
+    private final Map<String, Set<String>> templateContextMap;
+    private final Deque<ExitedScope> exitedScopes;
 
     private static class ExitedScope {
         final String name;
@@ -42,11 +42,6 @@ public class FlaskSemanticAnalyzer {
         define("max", "function");
     }
 
-    /**
-     * Analyze the Flask AST, return collected errors.
-     * After analysis, getTemplateContextMap() provides the
-     * template-name → context-variables mapping.
-     */
     public List<SemanticError> analyze(FlaskASTNode root) {
         visitNode(root);
         exitScope();
@@ -57,10 +52,6 @@ public class FlaskSemanticAnalyzer {
         return templateContextMap;
     }
 
-    // ---------------------------------------------------------------
-    // Scope management
-    // ---------------------------------------------------------------
-
     private void enterScope(String name) {
         scopeStack.push(new HashMap<>());
         scopeNameStack.push(name);
@@ -69,7 +60,7 @@ public class FlaskSemanticAnalyzer {
     private void exitScope() {
         Map<String, String> data = scopeStack.pop();
         String name = scopeNameStack.pop();
-        // Persist function and generator scopes so we can detect out-of-scope variable access
+
         if (name.startsWith("function:") || name.equals("generator")) {
             exitedScopes.push(new ExitedScope(name, data));
         }
@@ -87,17 +78,12 @@ public class FlaskSemanticAnalyzer {
         return null;
     }
 
-    /** Check if a variable exists in ANY scope (including unreachable ones). */
     private boolean existsInAnyScope(String varName) {
         for (Map<String, String> scope : scopeStack) {
             if (scope.containsKey(varName)) return true;
         }
         return false;
     }
-
-    // ---------------------------------------------------------------
-    // Main dispatch
-    // ---------------------------------------------------------------
 
     private void visitNode(FlaskASTNode node) {
         if (node == null) return;
@@ -111,7 +97,7 @@ public class FlaskSemanticAnalyzer {
         else if (node instanceof ImportStmt)        visitImportStmt((ImportStmt) node);
         else if (node instanceof FromImportStmt)    visitFromImportStmt((FromImportStmt) node);
         else if (node instanceof ExprStmt)          visitExprStmt((ExprStmt) node);
-        else if (node instanceof Param)             { /* visited via FuncDefStmt */ }
+        else if (node instanceof Param)             {  }
         else if (node instanceof ArgKw)             visitArgKw((ArgKw) node);
         else if (node instanceof Args)              { for (ArgKw a : ((Args) node).argKws) visitArgKw(a); }
         else if (node instanceof DictPair)          visitExpr(((DictPair) node).value);
@@ -141,10 +127,6 @@ public class FlaskSemanticAnalyzer {
         return "unknown";
     }
 
-    // ---------------------------------------------------------------
-    // Statement visitors
-    // ---------------------------------------------------------------
-
     private void visitFileNodeFlask(FileNodeFlask node) {
         for (Stmt stmt : node.statements) {
             visitNode(stmt);
@@ -165,7 +147,6 @@ public class FlaskSemanticAnalyzer {
             ));
         }
 
-        // If variable doesn't exist in our scope stack, add it
         if (!existsInCurrentScope(target)) {
             define(target, valueType);
         }
@@ -189,17 +170,15 @@ public class FlaskSemanticAnalyzer {
     }
 
     private void visitRouteDefStmt(RouteDefStmt node) {
-        // Extract route path if present
+
         for (RouteArg arg : node.routeArgs) {
             if (arg instanceof RouteArgString) {
-                // Path string, not needed for semantic analysis
+
             } else if (arg instanceof RouteArgKw) {
-                // methods=["GET", "POST"] etc.
+
             }
         }
 
-        // The function definition is already visited as a child
-        // Just visit it (it will be dispatched to visitFuncDefStmt)
         visitNode(node.function);
     }
 
@@ -241,10 +220,6 @@ public class FlaskSemanticAnalyzer {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Expression visitors
-    // ---------------------------------------------------------------
-
     private String visitLiteralExpr(LiteralExpr node) {
         Object val = node.value;
         if (val == null) return "none";
@@ -262,7 +237,7 @@ public class FlaskSemanticAnalyzer {
         String name = node.name;
         String type = resolve(name);
         if (type == null) {
-            // Check if variable exists in an exited scope (function or generator)
+
             String scopeName = findInExitedScopes(name);
             if (scopeName != null) {
                 error("Scope Error", node,
@@ -277,7 +252,6 @@ public class FlaskSemanticAnalyzer {
         return type;
     }
 
-    /** Search exited scopes for a variable and return the short scope name, or null. */
     private String findInExitedScopes(String varName) {
         for (ExitedScope es : exitedScopes) {
             if (es.variables.containsKey(varName)) {
@@ -285,7 +259,7 @@ public class FlaskSemanticAnalyzer {
                 if (raw.startsWith("function:")) {
                     return raw.substring("function:".length());
                 }
-                return raw; // "generator"
+                return raw;
             }
         }
         return null;
@@ -296,7 +270,6 @@ public class FlaskSemanticAnalyzer {
         String rightType = visitExpr(node.right);
         String op = node.operator;
 
-        // Type checking for arithmetic/comparison
         if ("+".equals(op)) {
             if (bothKnownAndDifferent(leftType, rightType)) {
                 errors.add(new SemanticError(
@@ -304,7 +277,7 @@ public class FlaskSemanticAnalyzer {
                         "Cannot apply operator '+' to types '" + leftType + "' and '" + rightType + "'"
                 ));
             }
-            // Infer result type
+
             if ("string".equals(leftType) && "string".equals(rightType)) return "string";
             if ("number".equals(leftType) && "number".equals(rightType)) return "number";
             return "unknown";
@@ -326,11 +299,10 @@ public class FlaskSemanticAnalyzer {
     private String visitPrimaryExpr(PrimaryExpr node) {
         String baseType = visitExpr(node.base);
 
-        // Detect render_template calls
         if (node.base instanceof NameExpr) {
             String name = ((NameExpr) node.base).name;
             if ("render_template".equals(name)) {
-                // Extract template name and context variables
+
                 for (Expr suffix : node.suffixes) {
                     if (suffix instanceof CallExpr) {
                         extractTemplateContext((CallExpr) suffix);
@@ -338,11 +310,10 @@ public class FlaskSemanticAnalyzer {
                         visitExpr(suffix);
                     }
                 }
-                return "string"; // render_template returns a string
+                return "string";
             }
         }
 
-        // For any other primary expression, visit all suffixes
         for (Expr suffix : node.suffixes) {
             visitExpr(suffix);
         }
@@ -356,11 +327,11 @@ public class FlaskSemanticAnalyzer {
 
         for (ArgKw arg : call.routeArgKws) {
             if (arg.name == null) {
-                // Positional argument — first one is the template name
+
                 templateName = extractTemplateName(arg.value);
                 visitExpr(arg.value);
             } else {
-                // Keyword argument — this is a context variable
+
                 contextVars.add(arg.name);
                 if (arg.value != null) {
                     visitExpr(arg.value);
@@ -373,10 +344,9 @@ public class FlaskSemanticAnalyzer {
         }
     }
 
-    /** Extract the template name from an expression, unwrapping PrimaryExpr. */
     private String extractTemplateName(Expr expr) {
         if (expr == null) return null;
-        // Unwrap PrimaryExpr
+
         while (expr instanceof PrimaryExpr) {
             expr = ((PrimaryExpr) expr).base;
         }
@@ -426,10 +396,6 @@ public class FlaskSemanticAnalyzer {
         exitScope();
         return "generator";
     }
-
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
 
     private void error(String errorType, FlaskASTNode node, String message) {
         errors.add(new SemanticError(errorType, node.getNodeName(), node.line, message));

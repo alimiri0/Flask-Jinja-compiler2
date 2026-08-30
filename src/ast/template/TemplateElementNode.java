@@ -4,9 +4,6 @@ import ast.flask.FlaskASTNode;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Base class for template elements (HTML tags, text, style, Jinja)
- */
 public class TemplateElementNode extends TemplateASTNode {
 
     public final List<TemplateASTNode> children = new ArrayList<>();

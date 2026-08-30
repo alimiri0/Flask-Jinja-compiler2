@@ -5,7 +5,7 @@ import ast.template.TemplateASTNode;
 public class CssPseudoClassNode extends TemplateASTNode {
 
     public final String name;
-    public final TemplateASTNode args; // may be null
+    public final TemplateASTNode args;
 
     public CssPseudoClassNode(String name, TemplateASTNode args, int line, int column) {
         super(line, column);

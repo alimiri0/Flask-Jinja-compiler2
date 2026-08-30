@@ -5,9 +5,6 @@ import ast.flask.FlaskASTNode;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Base AST node class with optional line/column info and children.
- */
 public abstract class TemplateASTNode {
     public final int line;
     public final int column;
