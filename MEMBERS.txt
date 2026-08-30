@@ -1,5 +1,0 @@
-Group: <GROUP_NUMBER>
-Members:
-- محمد وسيم البزرة
-- سارية الزعبي
-GitHub: <GITHUB_REPO_LINK>
